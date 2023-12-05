@@ -70,9 +70,9 @@ struct DrgCase {
     main_opt: String,         // 主手术编码(手术病例必填)
     other_dis: Vec<String>,   // 其他诊断编码(列表)
     other_opt: Vec<String>,   // 其他手术编码(列表)
-    sex: i32,                 // 性别(0 => 女, 1 => 男)
+    sex: i64,                 // 性别(0 => 女, 1 => 男)
     age: f64,                 // 年龄(不足一岁以小于1小数表示, 出生天数/365)
-    weight: i32,              // 体重
+    weight: i64,              // 体重
     all_dis: HashSet<String>, // 所有的诊断
     all_opt: HashSet<String>, // 所有的手术
 }
@@ -85,9 +85,9 @@ impl DrgCase {
         principal_operation: String,
         other_diagnosis: Vec<String>,
         other_operation: Vec<String>,
-        gender: i32,
+        gender: i64,
         old: f64,
-        mass: i32,
+        mass: i64,
     ) -> Self {
         Self {
             id: admission_number,
@@ -569,7 +569,7 @@ fn which_adrg(
                         adrg_dis_opt,
                         adrg_opt_list,
                         adrg_type_dict,
-                        adrg.to_string()
+                        adrg.to_string(),
                     );
                     if result_adrg != "KBBZ" {
                         return (result_adrg, result_mdc);
@@ -587,7 +587,7 @@ fn which_adrg(
                         adrg_dis_opt,
                         adrg_opt_list,
                         adrg_type_dict,
-                        adrg.to_string()
+                        adrg.to_string(),
                     );
                     if result_adrg != "KBBZ" {
                         return (result_adrg, result_mdc);
@@ -605,7 +605,7 @@ fn which_adrg(
                         adrg_dis_opt,
                         adrg_opt_list,
                         adrg_type_dict,
-                        adrg.to_string()
+                        adrg.to_string(),
                     );
                     if result_adrg != "KBBZ" {
                         return (result_adrg, result_mdc);
@@ -623,7 +623,7 @@ fn which_adrg(
                         adrg_dis_opt,
                         adrg_opt_list,
                         adrg_type_dict,
-                        adrg.to_string()
+                        adrg.to_string(),
                     );
                     if result_adrg != "KBBZ" {
                         return (result_adrg, result_mdc);
@@ -724,7 +724,7 @@ fn cc_mcc(
         complication = &temp[1];
         // 有严重或一般并发症
         if complication != "" {
-            if  exclude_pos != "无" {
+            if exclude_pos != "无" {
                 // 是否被排除
                 let is_exclude = exclude_dict
                     .get(&record.main_dis)
@@ -736,7 +736,6 @@ fn cc_mcc(
                 // 没有排除表
                 complication_list.push(complication.to_string());
             }
-
         }
     }
     if adrg_type_dict[&adrg_pred][1].as_str() == "1合并3" {
@@ -752,7 +751,7 @@ fn cc_mcc(
             return "5".to_string();
         }
     } else {
-        if complication.len() == 0 {
+        if complication_list.len() == 0 {
             return "5".to_string();
         } else if complication_list.contains(&"MCC".to_string()) {
             return "1".to_string();
@@ -824,10 +823,10 @@ fn read_vec_from_terminal() -> Vec<String> {
     }
 }
 // 读取用户输入的整数
-fn read_int_from_terminal() -> i32 {
+fn read_int_from_terminal() -> i64 {
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    input.trim().parse::<i32>().unwrap()
+    input.trim().parse::<i64>().unwrap()
 }
 
 // 读取用户输入的浮点数
@@ -893,48 +892,85 @@ fn from_csv_file(file_path: &str) -> Result<DataFrame, Box<dyn Error>> {
 
 // 转换ICD编码, 在ICD10中涉及到x的只有小写
 fn icd_transform(icd: String) -> String {
-    icd.chars().map(|c| {
-        if c == 'x' {
-            c
-        } else {
-            c.to_uppercase().collect::<String>().chars().next().unwrap()
-        }
-    }).collect::<String>()
+    icd.chars()
+        .map(|c| {
+            if c == 'x' {
+                c
+            } else {
+                c.to_uppercase().collect::<String>().chars().next().unwrap()
+            }
+        })
+        .collect::<String>()
 }
 
 // 合并表中的各个其他手术列的手术编码为一个向量✔
 fn concat_icd9_code(df: &DataFrame, idx: usize) -> Result<Vec<String>, Box<dyn Error>> {
     let mut row_val: Vec<String> = Vec::new();
-    for colname in ["其他手术编码1","其他手术编码2","其他手术编码3","其他手术编码4","其他手术编码5","其他手术编码6","其他手术编码7",
-                    "其他手术编码8","其他手术编码9","其他手术编码10","其他手术编码11","其他手术编码12","其他手术编码13","其他手术编码14",
-                    "其他手术编码15","其他手术编码16"]
-    {
+    for colname in [
+        "其他手术编码1",
+        "其他手术编码2",
+        "其他手术编码3",
+        "其他手术编码4",
+        "其他手术编码5",
+        "其他手术编码6",
+        "其他手术编码7",
+        "其他手术编码8",
+        "其他手术编码9",
+        "其他手术编码10",
+        "其他手术编码11",
+        "其他手术编码12",
+        "其他手术编码13",
+        "其他手术编码14",
+        "其他手术编码15",
+        "其他手术编码16",
+    ] {
         if df.column(colname)?.get(idx).unwrap() != AnyValue::Null {
             let res = df.column(colname)?.get(idx)?;
             row_val.push(res.to_string());
         }
     }
-    let modify_vec: Vec<String> = row_val.into_iter().map(|s| s.trim_matches('\"').to_string()).collect();
-    return Ok(modify_vec)
+    let modify_vec: Vec<String> = row_val
+        .into_iter()
+        .map(|s| s.trim_matches('\"').to_string())
+        .collect();
+    return Ok(modify_vec);
 }
 
 // 合并表格中的各个其他诊断编码为一个向量(需要转换大小写)✔
 fn concat_icd10_code(df: &DataFrame, idx: usize) -> Result<Vec<String>, Box<dyn Error>> {
     let mut row_val: Vec<String> = Vec::new();
-    for colname in ["其他诊断编码1","其他诊断编码2","其他诊断编码3","其他诊断编码4","其他诊断编码5","其他诊断编码6","其他诊断编码7",
-        "其他诊断编码8","其他诊断编码9","其他诊断编码10","其他诊断编码11","其他诊断编码12","其他诊断编码13","其他诊断编码14",
-        "其他诊断编码15","其他诊断编码16"]
-    {
+    for colname in [
+        "其他诊断编码1",
+        "其他诊断编码2",
+        "其他诊断编码3",
+        "其他诊断编码4",
+        "其他诊断编码5",
+        "其他诊断编码6",
+        "其他诊断编码7",
+        "其他诊断编码8",
+        "其他诊断编码9",
+        "其他诊断编码10",
+        "其他诊断编码11",
+        "其他诊断编码12",
+        "其他诊断编码13",
+        "其他诊断编码14",
+        "其他诊断编码15",
+        "其他诊断编码16",
+    ] {
         if df.column(colname)?.get(idx).unwrap() != AnyValue::Null {
             let res = df.column(colname)?.get(idx)?;
             row_val.push(res.to_string());
         }
     }
-    let modify_vec: Vec<String> = row_val.into_iter().map(|s| icd_transform(s.trim_matches('\"').to_string())).collect();
-    return Ok(modify_vec)
+    let modify_vec: Vec<String> = row_val
+        .into_iter()
+        .map(|s| icd_transform(s.trim_matches('\"').to_string()))
+        .collect();
+    return Ok(modify_vec);
 }
 
-// 从表格数据构造出DRG病例结构
+// 从表格数据构造出DRG病例结构✔
+// 需要将双引号去掉
 fn construct_drg_case(df: &DataFrame) -> Result<Vec<DrgCase>, Box<dyn Error>> {
     let df_size = df.shape();
     let mut my_vec: Vec<DrgCase> = Vec::new();
@@ -942,22 +978,25 @@ fn construct_drg_case(df: &DataFrame) -> Result<Vec<DrgCase>, Box<dyn Error>> {
         let temp_main_opt = df.column("主手术编码")?.get(i).unwrap();
         let mut drg_case = DrgCase::new(
             df.column("结算流水号")?.get(i)?.to_string(),
-            icd_transform(df.column("主诊断编码")?.get(i)?.to_string()),
+            icd_transform(df.column("主诊断编码")?.get(i)?.to_string())
+                .trim_matches('\"')
+                .to_string(),
             match temp_main_opt {
                 AnyValue::Null => "".to_string(),
-                _ => temp_main_opt.to_string()
+                _ => temp_main_opt.to_string().trim_matches('\"').to_string(),
             },
             concat_icd10_code(df, i)?,
             concat_icd9_code(df, i)?,
-            df.column("性别")?.i32()?.get(i).unwrap(),
+            df.column("性别")?.i64()?.get(i).unwrap(),
             df.column("年龄")?.f64()?.get(i).unwrap(),
-            df.column("体重")?.i32()?.get(i).unwrap()
+            df.column("体重")?.i64()?.get(i).unwrap(),
         );
-        let _ = drg_case.concat_dis();   // 将其他诊断与主诊断合并在一起
-        let _ = &drg_case.concat_opt();  // 将其他手术与主手术合并在一起
+        let _ = drg_case.concat_dis(); // 将其他诊断与主诊断合并在一起
+        let _ = &drg_case.concat_opt(); // 将其他手术与主手术合并在一起
+
         my_vec.push(drg_case);
     }
-    return Ok(my_vec)
+    return Ok(my_vec);
 }
 
 // 批量对表格数据进行DRG分组
@@ -973,7 +1012,7 @@ fn batch_drg_group(
     mdc_to_adrg: &HashMap<String, HashSet<String>>, // MDC下的ADRG
 ) -> Vec<String> {
     let mut pred_drg_list: Vec<String> = Vec::new();
-    let drg_case = construct_drg_case(&df).unwrap();
+    let drg_case = construct_drg_case(df).unwrap();
     for case in drg_case {
         let drg_pred = which_drg(
             &case,
@@ -984,14 +1023,14 @@ fn batch_drg_group(
             adrg_dis_opt,
             mdcz_main_dis_dict,
             adrg_opt_list,
-            mdc_to_adrg
+            mdc_to_adrg,
         );
         pred_drg_list.push(drg_pred);
     }
-    return pred_drg_list
+    return pred_drg_list;
 }
 
-// 对表格数据进行DRG分组并导出原表格及分组结果
+// 对表格数据进行DRG分组并导出原表格及分组结果✔
 fn drg_group_and_export(
     in_path: &str,
     out_path: &str,
@@ -1005,27 +1044,32 @@ fn drg_group_and_export(
     mdc_to_adrg: &HashMap<String, HashSet<String>>, // MDC下的ADRG
 ) -> Result<(), Box<dyn Error>> {
     // 读取CSV表格文件
+    println!("reading data ... ");
     let mut df = from_csv_file(in_path).unwrap();
+    println!("drg grouping ... ");
     // 进行DRG分组
-    let drg_pred_list = batch_drg_group(&df,
-                                        adrg_type_dict,
-                                        exclude_dict,
-                                        cc_mcc_dict,
-                                        mdc_dis,
-                                        adrg_dis_opt,
-                                        mdcz_main_dis_dict,
-                                        adrg_opt_list,
-                                        mdc_to_adrg);
+    let drg_pred_list = batch_drg_group(
+        &df,
+        adrg_type_dict,
+        exclude_dict,
+        cc_mcc_dict,
+        mdc_dis,
+        adrg_dis_opt,
+        mdcz_main_dis_dict,
+        adrg_opt_list,
+        mdc_to_adrg,
+    );
     // 创建一个Series序列准备添加到数据表中
     let new_col = Series::new("clear_code", drg_pred_list);
     // 定义需要添加的列的数据类型
     let mut my_schema = Schema::new();
     my_schema.with_column(String::from("clear_code"), DataType::UInt8);
     // 向表中添加列
-    &df._add_columns(vec![new_col], &my_schema)?;
+    let _ = &df._add_columns(vec![new_col], &my_schema)?;
 
     // 将表格数据以CSV格式写入本地
     let export_file = File::create(&out_path)?;
+    println!("data exporting ...");
     CsvWriter::new(export_file)
         .has_header(true)
         .with_delimiter(b',')
@@ -1104,8 +1148,6 @@ fn main() {
                 &all_adrg_opt_list,
                 &mdc_to_adrg_dict,
             );
-            println!("{:?}", &this_case.all_opt);
-            println!("{:?}", &this_case.all_dis);
             println!("Drg code of this case is {}", this_drg_pred);
             println!("Do you want continue drg group? enter yes to continue, otherwise enter quit");
             go_on = read_str_from_terminal();
@@ -1113,7 +1155,7 @@ fn main() {
     } else {
         // 批量表格分组
         println!("please enter import file path: ");
-        let in_file_path= read_str_from_terminal();
+        let in_file_path = read_str_from_terminal();
         println!("please enter export file path: ");
         let out_file_path = read_str_from_terminal();
         drg_group_and_export(
@@ -1126,8 +1168,8 @@ fn main() {
             &adrg_dis_opt_dict,
             &mdcz_main_dis_dict,
             &all_adrg_opt_list,
-            &mdc_to_adrg_dict
-        ).expect("drg group fail please check if there are any wrong in dataset");
+            &mdc_to_adrg_dict,
+        )
+        .expect("drg group fail please check if there are any wrong in dataset");
     }
-
 }
