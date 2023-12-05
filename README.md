@@ -16,6 +16,8 @@
 - 年龄（必填，整数）
 当输入上述信息后按即可得到这个病例的分组编码，按下yes继续输入下一病例的信息
 进行分组，按下quit退出。
+![image](https://github.com/purplesabbath/rust_drg_group_tool/assets/20260829/ffb98222-5c70-492d-9587-39ca14628742)
+
 
 ### 多病例模式
 点击rust_drg.exe进入命令行，输入batch进入多个病例分组模式，输入需要导入的文件路径，导出结果的文件路径
@@ -29,4 +31,5 @@
 7. 年龄（非空）
 8. 体重（非空，不足一岁可用浮点数表示）
 *导出的结果文件中的clear_code列即为分组结果*
+![image](https://github.com/purplesabbath/rust_drg_group_tool/assets/20260829/232ae5bf-e40a-4eb7-bfda-e213a3a62187)
 
